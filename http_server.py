@@ -88,34 +88,25 @@ def response_path(path):
 
     """
 
-    path += '/'
-    directory = path.split('/')
+    relative_path = os.path.join("webroot", path.strip('/'))
 
-    if directory[1] == '':
-        content = ', '.join(os.listdir('webroot')).encode()
-        mime_type = b"text/plain"
-    elif directory[1] == 'images':
-        if directory[2] == '':
-            content = ', '.join(os.listdir('webroot/images')).encode()
-            mime_type = b"text/plain"
-        else:
-            display_file = directory[2]
-    else:
-        display_file = directory[1]
-    mime_type = mimetypes.guess_type(display_file)[0]
-    content = b''
-    if display_file:
+    file = os.path.isfile(relative_path)
+
+    if file:
+        mime_type = mimetypes.guess_type(relative_path)[0].encode()
+        content = b''
         try:
-            with open(display_file, 'rb') as f:
+            with open(relative_path, 'rb') as f:
                 byte = f.read(1)
                 while byte:
                     content += byte
                     byte = f.read(1)
         except FileNotFoundError:
             raise NameError
+    else:
+        content = ', '.join(os.listdir(relative_path)).encode()
+        mime_type = b"text/plain"
 
-    # content = b"not implemented"
-    # mime_type = b"not implemented"
     return content, mime_type
 
 
@@ -150,8 +141,8 @@ def server(log_buffer=sys.stderr):
                     content, mime_type = response_path(path)
 
                     response = response_ok(
-                        body=b"Welcome to my web server",
-                        mimetype=b"text/plain"
+                        content,
+                        mime_type
                     )
                 except NotImplementedError:
                     response = response_method_not_allowed()
@@ -163,7 +154,7 @@ def server(log_buffer=sys.stderr):
             except:
                 traceback.print_exc()
             finally:
-                conn.close() 
+                conn.close()
 
     except KeyboardInterrupt:
         sock.close()
@@ -175,5 +166,3 @@ def server(log_buffer=sys.stderr):
 if __name__ == '__main__':
     server()
     sys.exit(0)
-
-
